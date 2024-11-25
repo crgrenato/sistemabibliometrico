@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Bibliométrico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5deb3;
+        }
+        .navbar {
+            background-color: #8b4513;
+        }
+        .btn-primary {
+            background-color: #a0522d;
+            border-color: #8b4513;
+        }
+        .btn-primary:hover {
+            background-color: #8b4513;
+            border-color: #5a2d0c;
+        }
+        .card {
+            border: 1px solid #8b4513;
+            background-color: #fffaf0;
+        }
+        .card-title {
+            color: #8b4513;
+        }
+        .footer {
+            background-color: #8b4513;
+            color: #fff;
+            padding: 20px;
+            width: 100%;
+            margin-top: 50px;
+        }
+        .results-card {
+            border: 1px solid #8b4513;
+            background-color: #fffaf0;
+            padding: 15px;
+        }
+        .results-card h5 {
+            color: #8b4513;
+        }
+        .category-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 20px;
+            color: #8b4513;
+            text-decoration: underline;
+        }
+        .total-results {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #8b4513;
+            margin-top: 30px;
+            text-align: center;
+        }
+        /* Colores de porcentajes */
+        .percentage-green {
+            color: rgb(13, 114, 13);
+        }
+        .percentage-yellow {
+            color: rgb(173, 173, 9);
+        }
+        .percentage-red {
+            color: rgb(190, 7, 7);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Software Bibliométrico - Capstone Project</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-center">Sube tus Tesis en PDF</h5>
+                        <form id="upload-form" enctype="multipart/form-data" class="text-center">
+                            <div class="mb-3">
+                                <input type="file" id="file-input" name="file" multiple class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Subir y Analizar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-8 offset-md-2">
+                <div id="results" class="mt-4">
+                    <!-- Aquí aparecerán los resultados -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="mb-0">© Desarrollado por el equipo de Capstone Project</p>
+            <p>Ariana Odicio y Christian Gomez <i class="fas fa-laptop-code"></i></p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const resultsDiv = document.getElementById('results');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${errorText}</div>`;
+                    return;
+                }
+
+                const data = await response.json();
+                resultsDiv.innerHTML = '';
+
+                data.forEach(result => {
+                    const resultCard = document.createElement('div');
+                    resultCard.classList.add('results-card', 'mb-4');
+
+                    const cardBody = document.createElement('div');
+
+                    // Mostrar título, año y universidad
+                    const titleElement = document.createElement('p');
+                    titleElement.innerHTML = `<strong>Título:</strong> ${result.title || 'No se pudo determinar el título'}`;
+                    cardBody.appendChild(titleElement);
+
+                    const yearElement = document.createElement('p');
+                    yearElement.innerHTML = `<strong>Año de Publicación:</strong> ${result.year || 'No se pudo determinar el año'}`;
+                    cardBody.appendChild(yearElement);
+
+                    const universityElement = document.createElement('p');
+                    universityElement.innerHTML = `<strong>Universidad:</strong> ${result.university || 'No se pudo determinar la universidad'}`;
+                    cardBody.appendChild(universityElement);
+
+                    const fileTitle = document.createElement('h5');
+                    fileTitle.textContent = `Análisis de: ${result.file_name}`;
+                    cardBody.appendChild(fileTitle);
+
+                    // Categorías y elementos organizados en dos columnas
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('row');
+
+                    const colLeft = document.createElement('div');
+                    colLeft.classList.add('col-md-6');
+
+                    const colRight = document.createElement('div');
+                    colRight.classList.add('col-md-6');
+
+                    const categories = {
+                        "Citación": [
+                            "indice_de_antiguedad", "indice_impacto_revistas", "porcentaje_citas_textuales",
+                            "porcentaje_conectores_logicos", "porcentaje_parafraseo", "porcentaje_fuentes_utilizadas"
+                        ],
+                        "Metodológicos": [
+                            "tipo_investigacion", "enfoque", "nivel_alcance", "diseno_investigacion"
+                        ],
+                        "Innovación Tecnológica": [
+                            "desarrollo_software", "tecnologias_emergentes", "validacion_modelos",
+                            "marcos_referencia", "validacion_producto"
+                        ],
+                        "Frecuencia de Técnicas, Instrumentos y Equipos de Recolección de Datos": [
+                            "cuestionarios_encuestas", "observacion_fichas", "entrevistas"
+                        ],
+                        "Resultados y Discusión": [
+                            "aplicacion_pruebas_estadisticas", "metricas_rendimiento", "relevante_ciencia_tecnologia"
+                        ]
+                    };
+
+                    let addToLeftColumn = true;
+                    Object.keys(categories).forEach(category => {
+                        const categoryTitle = document.createElement('div');
+                        categoryTitle.classList.add('category-title');
+                        categoryTitle.textContent = category;
+
+                        const container = (category === "Resultados y Discusión") ? colRight : (addToLeftColumn ? colLeft : colRight);
+                        container.appendChild(categoryTitle);
+
+                        categories[category].forEach(key => {
+                            const element = document.createElement('p');
+                            element.innerHTML = `<strong>${key.replace(/_/g, ' ')}:</strong> ${result[key] || '0%'}`;
+                            container.appendChild(element);
+                        });
+
+                        if (category !== "Resultados y Discusión") {
+                            addToLeftColumn = !addToLeftColumn;
+                        }
+                    });
+
+                    rowContainer.appendChild(colLeft);
+                    rowContainer.appendChild(colRight);
+                    cardBody.appendChild(rowContainer);
+
+                    // Añadir total de porcentajes con color condicional
+                    const totalElement = document.createElement('p');
+                    let totalValue = result.total_porcentajes || '0%';
+                    
+                    let totalClass = 'percentage-red';
+                    if (parseFloat(totalValue) >= 80) {
+                        totalClass = 'percentage-green';
+                    } else if (parseFloat(totalValue) >= 50) {
+                        totalClass = 'percentage-yellow';
+                    }
+
+                    totalElement.innerHTML = `<strong>Total de Porcentajes:</strong> <span class="${totalClass}">${totalValue}</span>`;
+                    totalElement.classList.add('total-results');
+                    cardBody.appendChild(totalElement);
+
+                    resultCard.appendChild(cardBody);
+                    resultsDiv.appendChild(resultCard);
+                });
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
