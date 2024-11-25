@@ -1,2 +1,0 @@
-# sistemabibliometrico
-Curso Capstone Proyect
